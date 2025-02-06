@@ -17,12 +17,22 @@ struct MyGoogleSignInApp: App {
     
     var body: some Scene {
         let _ = print("\(SRC): Called")
-
+        
         WindowGroup {
             Text(SRC)
                 .onAppear {
+                    // https://stackoverflow.com/questions/25897086/obtain-bundle-identifier-programmatically-in-swift
+                    if let bundleID = Bundle.main.bundleIdentifier {
+                        print("\(SRC): bundleID = \(bundleID)")
+                    }
+
                     GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+                        let SRC = self.SRC + ".restorePreviousSignIn"
                         print("\(SRC): user = \(String(describing: user))|error = \(String(describing: error))")
+                        
+                        if user != nil {
+                            print("\(SRC): user = \(MyGoogleSignInApp.printUser(user!))")
+                        }
                         
                         if error != nil {
                             print("\(SRC): ERROR = \(error!)|")
@@ -58,12 +68,7 @@ struct MyGoogleSignInApp: App {
                 
                 // If sign in succeeded, extract user info.
                 let user = signInResult!.user
-                print("\(SRC): userid = \(user.userID!)|")
-
-                if user.profile != nil {
-                    let profile = user.profile!
-                    print("\(SRC): email = \(profile.email)|name = \(profile.name)|")
-                }
+                print("\(SRC): user = \(MyGoogleSignInApp.printUser(user))")
             }
     } // handleSignInButton()
     
@@ -73,4 +78,15 @@ struct MyGoogleSignInApp: App {
             .flatMap { $0.windows }
             .first { $0.isKeyWindow }?.rootViewController
     }
+    
+    static func printUser(_ user: GIDGoogleUser) -> String {
+        var str = "userid = \(user.userID!)"
+
+        if user.profile != nil {
+            let profile = user.profile!
+            str += "|profile = <email = \(profile.email)|name = \(profile.name)>"
+        }
+        
+        return str
+    } // printUser()
 } // MyGoogleSignInApp()
