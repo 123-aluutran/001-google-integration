@@ -5,13 +5,17 @@
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleURLName</key>
+			<string></string>
+		</dict>
+		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.911972533915-ln6msvgcdjuenioql77eh8m9gs1qgukr</string>
+				<string>com.googleusercontent.apps.911972533915-ej0h8motto4mak56gn6vrpi4fd5vo1g8</string>
 			</array>
 		</dict>
 	</array>
 	<key>GIDClientID</key>
-	<string>911972533915-ln6msvgcdjuenioql77eh8m9gs1qgukr.apps.googleusercontent.com</string>
+	<string>911972533915-ej0h8motto4mak56gn6vrpi4fd5vo1g8.apps.googleusercontent.com</string>
 </dict>
 </plist>
