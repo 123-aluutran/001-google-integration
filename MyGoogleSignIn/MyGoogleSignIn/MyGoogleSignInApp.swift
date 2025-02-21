@@ -71,7 +71,7 @@ struct MyGoogleSignInApp: App {
         
         // func signIn(withPresenting presentingViewController: UIViewController, hint: String?, additionalScopes: [String]?) async throws -> GIDSignInResult
         GIDSignIn.sharedInstance.signIn(
-            withPresenting: getRootViewController()!, hint: "", additionalScopes: [kGTLRAuthScopeCalendar]) { signInResult, error in
+            withPresenting: getRootViewController()!) { signInResult, error in
                 let SRC = self.SRC + ".signIn"
                 print("\(SRC): Called: signInResult = \(String(describing: signInResult))|error = \(String(describing: error))")
                 if signInResult == nil {
