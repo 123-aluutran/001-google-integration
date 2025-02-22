@@ -58,7 +58,7 @@ struct MyGoogleSignInApp: App {
             if user != nil {
                 List {
                     Section {
-                        MyGoogleCalendar(user: user!)
+                        MyGoogleCalendar(user!)
                     }
                 }
             }
@@ -135,6 +135,14 @@ struct MyGoogleCalendar: View {
     //=== Interface ===
     @State var user: GIDGoogleUser
     
+    //=== Local ===
+    @State private var syncToken: String? = nil // Store the sync token for incremental updates
+    @State private var events: [GTLRCalendar_Event] = []
+    
+    init(_ user: GIDGoogleUser) {
+        self._user = State(initialValue: user)
+    }
+    
     var body: some View {
         let _ = print("\(SRC): Called")
         
@@ -147,6 +155,15 @@ struct MyGoogleCalendar: View {
         Button("Fetch calendar events") {
             fetchGoogleCalendarEvents()
         }
+        
+        Text("Periodic auto-refresh of calendar events")
+            .onAppear {
+                let period = 15 // secs
+                Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { _ in
+                    print("\(SRC): Auto-refresh of calendar events every \(period) secs")
+                    autoFetchEvents()
+                }
+            }
     }
     
     // Create an event to the Google Calendar's user
@@ -174,7 +191,7 @@ struct MyGoogleCalendar: View {
         }
         calendarEvent.start = buildDate(date: toBuildDateStart)
         calendarEvent.end = buildDate(date: toBuildDateEnd)
-
+        
         let insertQuery = GTLRCalendarQuery_EventsInsert.query(withObject: calendarEvent, calendarId: "primary")
         
         let service = GTLRCalendarService()
@@ -192,36 +209,36 @@ struct MyGoogleCalendar: View {
         }
         
         // Helper to build date
-       func buildDate(date: Date) -> GTLRCalendar_EventDateTime {
-           let datetime = GTLRDateTime(date: date)
-           let dateObject = GTLRCalendar_EventDateTime()
-           dateObject.dateTime = datetime
-           return dateObject
-       }
+        func buildDate(date: Date) -> GTLRCalendar_EventDateTime {
+            let datetime = GTLRDateTime(date: date)
+            let dateObject = GTLRCalendar_EventDateTime()
+            dateObject.dateTime = datetime
+            return dateObject
+        }
     } // addEventoToGoogleCalendar()
     
     func fetchGoogleCalendarEvents() {
         let SRC = self.SRC + ".fetchGoogleCalendarEvents"
         print("\(SRC): Called")
-        
+
         guard let user = GIDSignIn.sharedInstance.currentUser else {
             print("User not signed in")
             return
         }
-
+        
         let accessToken = user.accessToken.tokenString
         let url = URL(string: "https://www.googleapis.com/calendar/v3/calendars/primary/events")!
-
+        
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
+        
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error: \(error.localizedDescription)")
                 return
             }
-
+            
             if let data = data {
                 let responseString = String(data: data, encoding: .utf8)
                 print("Response: \(responseString ?? "No data")")
@@ -231,4 +248,44 @@ struct MyGoogleCalendar: View {
         
         print("\(SRC): Done")
     } // fetchGoogleCalendarEvents()
+    
+    func autoFetchEvents() {
+        let SRC = self.SRC + ".autoFetchEvents"
+        print("\(SRC): Called")
+        
+        let query = GTLRCalendarQuery_EventsList.query(withCalendarId: "primary")
+        query.singleEvents = true
+        
+        // If we have a syncToken, use it to fetch only changes.
+        // Per https://developers.google.com/calendar/api/v3/reference/events/list, attrs such as
+        // timeMin are not compatible with syncToken.
+        if let syncToken = syncToken {
+            query.syncToken = syncToken
+        }
+        else {
+            query.timeMin = GTLRDateTime(date: Date())
+        }
+        
+        let service = GTLRCalendarService()
+        service.authorizer = user.fetcherAuthorizer
+        service.executeQuery(query) { (ticket, result, error) in
+            if let error = error {
+                print("Error fetching events: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let eventsList = result as? GTLRCalendar_Events else { return }
+            DispatchQueue.main.async {
+                self.syncToken = eventsList.nextSyncToken // Store the new sync token
+                self.events = eventsList.items ?? []
+                print("\(SRC): events.count = \(self.events.count)")
+                
+                for event in self.events {
+                    print("\(SRC): even.summary = \(event.summary ?? "No summary")|event.iCalUID = \(event.iCalUID ?? "No iCalUID")")
+                }
+            }
+        }
+        
+        print("\(SRC): Done")
+    } // autoFetchEvents()
 } // MyGoogleCalendar
