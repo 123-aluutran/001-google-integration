@@ -179,9 +179,13 @@ struct MyGoogleCalendar: View {
         
         let service = GTLRCalendarService()
         service.authorizer = user.fetcherAuthorizer
-        service.executeQuery(insertQuery) { (ticket, object, error) in
+        service.executeQuery(insertQuery) { (ticket, resp, error) in
             if error == nil {
-                print("\(SRC): Event inserted")
+                print("\(SRC): Event inserted: typeof(ticket) = \(type(of: ticket))|typeof(resp) = \(type(of: resp)))")
+                
+                if let insertedEvent = resp as? GTLRCalendar_Event {
+                    print("\(SRC): eventID = \(insertedEvent.identifier ?? "No ID")|iCalUID: \(insertedEvent.iCalUID ?? "No iCalUID")")
+                }
             } else {
                 print("\(SRC): error = \(error!)|")
             }
