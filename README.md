@@ -1,4 +1,4 @@
-# 001-google-sign-in-2
+# 001-google-integration
 ## References
 https://www.youtube.com/watch?v=JjV8UWPbJDE
 
